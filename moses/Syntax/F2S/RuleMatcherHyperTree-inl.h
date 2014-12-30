@@ -81,8 +81,8 @@ void RuleMatcherHyperTree<Callback>::PropagateNextLexel(const FP &fp)
             tfns.resize(tfns.size()+1);
             tfns.back().assign(edge.tail.begin(), edge.tail.end());
           }
-          pos += subSeqLength + 1;
         }
+        pos += subSeqLength + 1;
       }
       if (tfns.empty()) {
         rfns.clear();
