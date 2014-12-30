@@ -1120,6 +1120,7 @@ sub run_single_giza {
 	 m2 => 0 , 
 	 m3 => 3 , 
 	 m4 => 3 , 
+	 hmmiterations => 0 ,
 	 o => "giza" ,
 	 nodumps => 1 ,
 	 onlyaldumps => 1 ,
@@ -1141,7 +1142,6 @@ sub run_single_giza {
     if ($_HMM_ALIGN) {
        $GizaDefaultOptions{m3} = 0;
        $GizaDefaultOptions{m4} = 0;
-       $GizaDefaultOptions{hmmiterations} = 5;
        $GizaDefaultOptions{hmmdumpfrequency} = 5;
        $GizaDefaultOptions{nodumps} = 0;
     }
@@ -1561,6 +1561,7 @@ sub score_phrase_phrase_extract {
       $UNALIGNED_FW_F = $1;
       $UNALIGNED_FW_E = $2;
     }
+    my $MIN_SCORE = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /MinScore *(\S+)/) ? $1 : undef;
     my $GOOD_TURING = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /GoodTuring/);
     my $KNESER_NEY = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /KneserNey/);
     my $LOG_PROB = (defined($_SCORE_OPTIONS) && $_SCORE_OPTIONS =~ /LogProb/);
@@ -1671,6 +1672,7 @@ sub score_phrase_phrase_extract {
     $cmd .= " --LowCountFeature" if $LOW_COUNT;
     $cmd .= " --CountBinFeature $COUNT_BIN" if $COUNT_BIN;
     $cmd .= " --SparseCountBinFeature $SPARSE_COUNT_BIN" if $SPARSE_COUNT_BIN;
+    $cmd .= " --MinScore $MIN_SCORE" if $MIN_SCORE;
     $cmd .= " --GoodTuring $ttable_file.half.f2e.gz.coc" if $GOOD_TURING;
     $cmd .= " --KneserNey $ttable_file.half.f2e.gz.coc" if $KNESER_NEY;
     $cmd .= " --SourceLabels $_GHKM_SOURCE_LABELS_FILE" if $_GHKM_SOURCE_LABELS && defined($_GHKM_SOURCE_LABELS_FILE);
@@ -2115,7 +2117,7 @@ sub create_ini {
       my $path = `pwd`; chop($path);
       $fn = $path."/".$fn;
     }
-    $type = "SRILM" unless defined $type; # default to SRILM if no type given
+    $type = "KENLM" unless defined $type; # default to KENLM if no type given
 
     if ($type =~ /^\d+$/) {
       # backwards compatibility if the type is given not as string but as a number

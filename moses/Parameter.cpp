@@ -161,6 +161,7 @@ Parameter::Parameter()
   AddParam("weight-pp", "pp", "DEPRECATED. DO NOT USE. weight for phrase pair feature");
   AddParam("weight-pb", "pb", "DEPRECATED. DO NOT USE. weight for phrase boundary feature");
   AddParam("weight-t", "tm", "DEPRECATED. DO NOT USE. weights for translation model components");
+  AddParam("weight-p", "w", "DEPRECATED. DO NOT USE. weight for phrase penalty");
   AddParam("weight-w", "w", "DEPRECATED. DO NOT USE. weight for word penalty");
   AddParam("weight-u", "u", "DEPRECATED. DO NOT USE. weight for unknown word penalty");
   AddParam("weight-e", "e", "DEPRECATED. DO NOT USE. weight for word deletion");
@@ -198,7 +199,11 @@ Parameter::Parameter()
   AddParam("feature-name-overwrite", "Override feature name (NOT arguments). Eg. SRILM-->KENLM, PhraseDictionaryMemory-->PhraseDictionaryScope3");
 
   AddParam("feature", "All the feature functions should be here");
+
   AddParam("print-id", "prefix translations with id. Default if false");
+
+  AddParam("print-passthrough", "output the sgml tag <passthrough> without any computation on that. Default is false");
+  AddParam("print-passthrough-in-n-best", "output the sgml tag <passthrough> without any computation on that in each entry of the n-best-list. Default is false");
 
   AddParam("alternate-weight-setting", "aws", "alternate set of weights to used per xml specification");
 
@@ -345,6 +350,7 @@ bool Parameter::LoadParam(int argc, char* argv[])
     	  GetParam("weight-i") || GetParam("weight-l") || GetParam("weight-lex") ||
           GetParam("weight-glm") || GetParam("weight-wt") || GetParam("weight-pp") ||
           GetParam("weight-pb") || GetParam("weight-t") || GetParam("weight-w") ||
+          GetParam("weight-p") ||
           GetParam("weight-u") || GetParam("weight-e") ||
           GetParam("dlm-mode") || GetParam("generation-file") || GetParam("global-lexical-file") ||
           GetParam("glm-feature") || GetParam("lmodel-file") || GetParam("lmodel-dub") ||
@@ -377,7 +383,7 @@ bool Parameter::LoadParam(int argc, char* argv[])
     }
   }
 
-  //Save("/Users/mnadejde/Documents/workspace/MTM13/DATA/mtmGHKM/moses.ini.new");
+  //Save("/tmp/moses.ini.new");
 
   // check if parameters make sense
   return Validate() && noErrorFlag;
@@ -567,6 +573,9 @@ void Parameter::ConvertWeightArgsPhraseModel(const string &oldWeightName)
       case 14: // DSuffixArray
         ptType = "PhraseDictionaryDynSuffixArray";
         break;
+      case 15: // DCacheBased:
+        ptType = "PhraseDictionaryDynamicCacheBased";
+        break;
       default:
         break;
       }
@@ -585,8 +594,8 @@ void Parameter::ConvertWeightArgsPhraseModel(const string &oldWeightName)
 
       vector<float> weights(numFF);
       for (size_t currFF = 0; currFF < numFF; ++currFF) {
-    	UTIL_THROW_IF2(currOldInd >= oldWeights.size(),
-    			"Errors converting old phrase-table weights to new weights");
+        UTIL_THROW_IF2(currOldInd >= oldWeights.size(),
+                       "Errors converting old phrase-table weights to new weights");
         float weight = Scan<float>(oldWeights[currOldInd]);
         weights[currFF] = weight;
 
@@ -690,8 +699,8 @@ void Parameter::ConvertWeightArgsDistortion()
 
       vector<FactorType> factors = Tokenize<FactorType>(toks[0], "-");
       UTIL_THROW_IF2(factors.size() != 2,
-    		  "Error in old factor specification for lexicalized reordering model: "
-    		  << toks[0]);
+                     "Error in old factor specification for lexicalized reordering model: "
+                     << toks[0]);
       strme << "input-factor=" << factors[0]
             << " output-factor=" << factors[1] << " ";
 
@@ -757,7 +766,7 @@ void Parameter::ConvertWeightArgsLM()
         newFeatureName = "KENLM";
         break;
       default:
-    	UTIL_THROW2("Unkown language model type id:"  << lmType);
+        UTIL_THROW2("Unkown language model type id:"  << lmType);
       }
 
       size_t numFF = 1;
@@ -766,8 +775,8 @@ void Parameter::ConvertWeightArgsLM()
 
       vector<float> weightsLM(numFF);
       for (size_t currFF = 0; currFF < numFF; ++currFF) {
-    	UTIL_THROW_IF2(currOldInd >= weights.size(),
-    			"Errors converting old LM weights to new weights");
+        UTIL_THROW_IF2(currOldInd >= weights.size(),
+                       "Errors converting old LM weights to new weights");
         weightsLM[currFF] = Scan<float>(weights[currOldInd]);
         if (isChartDecoding) {
           weightsLM[currFF] = UntransformLMScore(weightsLM[currFF]);
@@ -818,8 +827,8 @@ void Parameter::ConvertWeightArgsGeneration(const std::string &oldWeightName, co
 
       vector<float> weights(numFF);
       for (size_t currFF = 0; currFF < numFF; ++currFF) {
-    	UTIL_THROW_IF2(currOldInd >= oldWeights.size(),
-    			  "Errors converting old generation weights to new weights");
+        UTIL_THROW_IF2(currOldInd >= oldWeights.size(),
+                       "Errors converting old generation weights to new weights");
         float weight = Scan<float>(oldWeights[currOldInd]);
         weights[currFF] = weight;
 
@@ -893,7 +902,7 @@ void Parameter::ConvertWeightArgs()
 {
   // can't handle discr LM. must do it manually 'cos of bigram/n-gram split
   UTIL_THROW_IF2( m_setting.count("weight-dlm") != 0,
-		  "Can't handle discr LM. must do it manually 'cos of bigram/n-gram split");
+                  "Can't handle discr LM. must do it manually 'cos of bigram/n-gram split");
 
   // check that old & new format aren't mixed
   if (m_setting.count("weight") &&
@@ -940,20 +949,20 @@ void Parameter::CreateWeightsMap()
 void Parameter::CreateWeightsMap(const PARAM_VEC &vec)
 {
   for (size_t i = 0; i < vec.size(); ++i) {
-	const string &line = vec[i];
-	vector<string> toks = Tokenize(line);
-	UTIL_THROW_IF2(toks.size() < 2,
-			"Error in format of weights: " << line);
+    const string &line = vec[i];
+    vector<string> toks = Tokenize(line);
+    UTIL_THROW_IF2(toks.size() < 2,
+                   "Error in format of weights: " << line);
 
-	string name = toks[0];
-	name = name.substr(0, name.size() - 1);
+    string name = toks[0];
+    name = name.substr(0, name.size() - 1);
 
-	vector<float> weights(toks.size() - 1);
-	for (size_t i = 1; i < toks.size(); ++i) {
-	  float weight = Scan<float>(toks[i]);
-	  weights[i - 1] = weight;
-	}
-	m_weights[name] = weights;
+    vector<float> weights(toks.size() - 1);
+    for (size_t i = 1; i < toks.size(); ++i) {
+      float weight = Scan<float>(toks[i]);
+      weights[i - 1] = weight;
+    }
+    m_weights[name] = weights;
   }
 }
 
@@ -966,7 +975,7 @@ void Parameter::WeightOverwrite()
 
   // should only be on 1 line
   UTIL_THROW_IF2(vec.size() != 1,
-		  "Weight override should only be on 1 line");
+                 "Weight override should only be on 1 line");
 
   string name("");
   vector<float> weights;
@@ -1335,8 +1344,8 @@ void Parameter::OverwriteParam(const string &paramName, PARAM_VEC values)
   if (m_setting[paramName].size() > 1) {
     VERBOSE(2," (the parameter had " << m_setting[paramName].size() << " previous values)");
     UTIL_THROW_IF2(m_setting[paramName].size() != values.size(),
-    		"Number of weight override for " << paramName
-    		<< " is not the same as the original number of weights");
+                   "Number of weight override for " << paramName
+                   << " is not the same as the original number of weights");
   } else {
     VERBOSE(2," (the parameter does not have previous values)");
     m_setting[paramName].resize(values.size());

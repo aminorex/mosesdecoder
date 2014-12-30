@@ -42,6 +42,7 @@ namespace Moses
 class SentenceStats;
 class TrellisPath;
 class TranslationOptionCollection;
+class LatticeMBRSolution;
 
 /** Used to output the search graph */
 struct SearchGraphNode {
@@ -157,9 +158,17 @@ public:
   void PrintAllDerivations(long translationId, std::ostream& outputStream) const;
   void printDivergentHypothesis(long translationId, const Hypothesis* hypo, const std::vector <const TargetPhrase*> & remainingPhrases, float remainingScore , std::ostream& outputStream) const;
   void printThisHypothesis(long translationId, const Hypothesis* hypo, const std::vector <const TargetPhrase* > & remainingPhrases, float remainingScore , std::ostream& outputStream) const;
-  void GetOutputLanguageModelOrder( std::ostream &out, const Hypothesis *hypo );
+  void GetOutputLanguageModelOrder( std::ostream &out, const Hypothesis *hypo ) const;
   void GetWordGraph(long translationId, std::ostream &outputWordGraphStream) const;
   int GetNextHypoId();
+
+  void OutputLatticeMBRNBest(std::ostream& out, const std::vector<LatticeMBRSolution>& solutions,long translationId) const;
+  void OutputBestHypo(const std::vector<Moses::Word>&  mbrBestHypo, long /*translationId*/,
+                      char reportSegmentation, bool reportAllFactors, std::ostream& out) const;
+  void OutputBestHypo(const Moses::TrellisPath &path, long /*translationId*/,char reportSegmentation, bool reportAllFactors, std::ostream &out) const;
+
+  void OutputAlignment(Moses::OutputCollector* collector, size_t lineNo,  const Moses::TrellisPath &path);
+  void OutputAlignment(OutputCollector* collector, size_t lineNo , const std::vector<const Hypothesis *> &edges);
 
 #ifdef HAVE_PROTOBUF
   void SerializeSearchGraphPB(long translationId, std::ostream& outputStream) const;
@@ -187,6 +196,7 @@ public:
                                      std::vector< const Hypothesis* >* pConnectedList, std::map < const Hypothesis*, std::set < const Hypothesis* > >* pOutgoingHyps, std::vector< float>* pFwdBwdScores) const;
 
   // outputs
+  void OutputBest(OutputCollector *collector)  const;
   void OutputNBest(OutputCollector *collector)  const;
   void OutputAlignment(OutputCollector *collector) const;
   void OutputLatticeSamples(OutputCollector *collector) const;

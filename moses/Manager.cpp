@@ -45,6 +45,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include "moses/TranslationModel/PhraseDictionary.h"
 #include "moses/TranslationAnalysis.h"
 #include "moses/HypergraphOutput.h"
+#include "moses/LatticeMBR.h"
 
 #ifdef HAVE_PROTOBUF
 #include "hypergraph.pb.h"
@@ -115,7 +116,7 @@ void Manager::Decode()
   // search for best translation with the specified algorithm
   Timer searchTime;
   searchTime.start();
-  m_search->ProcessSentence();
+  m_search->Decode();
   VERBOSE(1, "Line " << m_source.GetTranslationId() << ": Search took " << searchTime << " seconds" << endl);
     IFVERBOSE(2) {
     GetSentenceStats().StopTimeTotal();
@@ -553,7 +554,8 @@ void Manager::OutputWordGraph(std::ostream &outputWordGraphStream, const Hypothe
   outputWordGraphStream << endl;
 }
 
-void Manager::GetOutputLanguageModelOrder( std::ostream &out, const Hypothesis *hypo ) {
+void Manager::GetOutputLanguageModelOrder( std::ostream &out, const Hypothesis *hypo ) const
+{
   Phrase translation;
   hypo->GetOutputPhrase(translation);
   const std::vector<const StatefulFeatureFunction*> &statefulFFs = StatefulFeatureFunction::GetStatefulFeatureFunctions();
@@ -1450,6 +1452,11 @@ SentenceStats& Manager::GetSentenceStats() const
 
 }
 
+void Manager::OutputBest(OutputCollector *collector)  const
+{
+
+}
+
 void Manager::OutputNBest(OutputCollector *collector) const
 {
   const StaticData &staticData = StaticData::Instance();
@@ -1490,7 +1497,7 @@ void Manager::OutputNBest(std::ostream& out
     out << " |||";
 
     // print scores with feature names
-    OutputAllFeatureScores(path.GetScoreBreakdown(), out );
+    path.GetScoreBreakdown().OutputAllFeatureScores(out );
 
     // total
     out << " ||| " << path.GetTotalScore();
@@ -1610,7 +1617,7 @@ void Manager::OutputSurface(std::ostream &out, const Hypothesis &edge, const std
       out << ",";
       ScoreComponentCollection scoreBreakdown(edge.GetScoreBreakdown());
       scoreBreakdown.MinusEquals(edge.GetPrevHypo()->GetScoreBreakdown());
-      OutputAllFeatureScores(scoreBreakdown, out);
+      scoreBreakdown.OutputAllFeatureScores(out);
     }
     out << "| ";
   }
@@ -1817,6 +1824,69 @@ void Manager::OutputSearchGraphHypergraph() const
   if (staticData.GetOutputSearchGraphHypergraph()) {
 	  HypergraphOutput<Manager> hypergraphOutput(PRECISION);
 	  hypergraphOutput.Write(*this);
+  }
+}
+
+void Manager::OutputLatticeMBRNBest(std::ostream& out, const vector<LatticeMBRSolution>& solutions,long translationId) const
+{
+  for (vector<LatticeMBRSolution>::const_iterator si = solutions.begin(); si != solutions.end(); ++si) {
+    out << translationId;
+    out << " |||";
+    const vector<Word> mbrHypo = si->GetWords();
+    for (size_t i = 0 ; i < mbrHypo.size() ; i++) {
+      const Factor *factor = mbrHypo[i].GetFactor(StaticData::Instance().GetOutputFactorOrder()[0]);
+      if (i>0) out << " " << *factor;
+      else     out << *factor;
+    }
+    out << " |||";
+    out << " map: " << si->GetMapScore();
+    out << " w: " << mbrHypo.size();
+    const vector<float>& ngramScores = si->GetNgramScores();
+    for (size_t i = 0; i < ngramScores.size(); ++i) {
+      out << " " << ngramScores[i];
+    }
+    out << " ||| " << si->GetScore();
+
+    out << endl;
+  }
+}
+
+void Manager::OutputBestHypo(const std::vector<Word>&  mbrBestHypo, long /*translationId*/, char /*reportSegmentation*/, bool /*reportAllFactors*/, ostream& out) const
+{
+
+  for (size_t i = 0 ; i < mbrBestHypo.size() ; i++) {
+    const Factor *factor = mbrBestHypo[i].GetFactor(StaticData::Instance().GetOutputFactorOrder()[0]);
+    UTIL_THROW_IF2(factor == NULL,
+  		  "No factor 0 at position " << i);
+    if (i>0) out << " " << *factor;
+    else     out << *factor;
+  }
+  out << endl;
+}
+
+void Manager::OutputBestHypo(const Moses::TrellisPath &path, long /*translationId*/, char reportSegmentation, bool reportAllFactors, std::ostream &out) const
+{
+  const std::vector<const Hypothesis *> &edges = path.GetEdges();
+
+  for (int currEdge = (int)edges.size() - 1 ; currEdge >= 0 ; currEdge--) {
+    const Hypothesis &edge = *edges[currEdge];
+    OutputSurface(out, edge, StaticData::Instance().GetOutputFactorOrder(), reportSegmentation, reportAllFactors);
+  }
+  out << endl;
+}
+
+void Manager::OutputAlignment(OutputCollector* collector, size_t lineNo , const vector<const Hypothesis *> &edges)
+{
+  ostringstream out;
+  Hypothesis::OutputAlignment(out, edges);
+
+  collector->Write(lineNo,out.str());
+}
+
+void Manager::OutputAlignment(OutputCollector* collector, size_t lineNo , const TrellisPath &path)
+{
+  if (collector) {
+    OutputAlignment(collector,lineNo, path.GetEdges());
   }
 }
 

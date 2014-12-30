@@ -10,9 +10,7 @@ BilingualLM_NPLM::BilingualLM_NPLM(const std::string &line)
         factored(false),
         neuralLM_cache(1000000) {
           
-          if (!NULL_overwrite) {
-            NULL_string = "<null>"; //Default null value for nplm
-          }
+          NULL_string = "<null>"; //Default null value for nplm
           FactorCollection& factorFactory = FactorCollection::Instance(); // To add null word.
           const Factor* NULL_factor = factorFactory.AddFactor(NULL_string);
           NULL_word.SetFactor(0, NULL_factor);
@@ -71,10 +69,10 @@ void BilingualLM_NPLM::initSharedPointer() const {
 }
 
 void BilingualLM_NPLM::SetParameter(const std::string& key, const std::string& value) {
-  if (key == "target_ngrams") {
-    target_ngrams = Scan<int>(value);
-  } else if (key == "source_ngrams") {
-    source_ngrams = Scan<int>(value);
+  if (key == "order") {
+    target_ngrams = Scan<int>(value)-1;
+  } else if (key == "source_window") {
+    source_ngrams = Scan<int>(value)*2+1;
   } else if (key == "factored") {
     factored = Scan<bool>(value);
   } else if (key == "pos_factor") {
@@ -87,6 +85,7 @@ void BilingualLM_NPLM::SetParameter(const std::string& key, const std::string& v
     neuralLM_cache = atoi(value.c_str());
   } else if (key == "premultiply") {
     premultiply = Scan<bool>(value);
+    //TODO: doesn't currently do anything (constructor doesn't know about parameters)
   } else if (key == "null_word") {
     NULL_string = value;
     NULL_overwrite = true;

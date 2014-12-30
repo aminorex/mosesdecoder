@@ -93,7 +93,7 @@ void ChartManager::Decode()
 
       // decode
       ChartCell &cell = m_hypoStackColl.Get(range);
-      cell.ProcessSentence(m_translationOptionList, m_hypoStackColl);
+      cell.Decode(m_translationOptionList, m_hypoStackColl);
 
       m_translationOptionList.Clear();
       cell.PruneToSize();
@@ -174,9 +174,9 @@ const ChartHypothesis *ChartManager::GetBestHypothesis() const
  * \param onlyDistinct whether to check for distinct output sentence or not (default - don't check, just return top n-paths)
  */
 void ChartManager::CalcNBest(
-    std::size_t n,
-    std::vector<boost::shared_ptr<ChartKBestExtractor::Derivation> > &nBestList,
-    bool onlyDistinct) const
+  std::size_t n,
+  std::vector<boost::shared_ptr<ChartKBestExtractor::Derivation> > &nBestList,
+  bool onlyDistinct) const
 {
   nBestList.clear();
   if (n == 0 || m_source.GetSize() == 0) {
@@ -187,7 +187,7 @@ void ChartManager::CalcNBest(
   WordsRange range(0, m_source.GetSize()-1);
   const ChartCell &lastCell = m_hypoStackColl.Get(range);
   boost::scoped_ptr<const std::vector<const ChartHypothesis*> > topLevelHypos(
-      lastCell.GetAllSortedHypotheses());
+    lastCell.GetAllSortedHypotheses());
   if (!topLevelHypos) {
     return;
   }
@@ -300,6 +300,16 @@ void ChartManager::OutputSearchGraphMoses(std::ostream &outputSearchGraphStream)
   WriteSearchGraph(writer);
 }
 
+void ChartManager::OutputBest(OutputCollector *collector) const
+{
+  const ChartHypothesis *bestHypo = GetBestHypothesis();
+  if (collector && bestHypo) {
+	  const size_t translationId = m_source.GetTranslationId();
+	  const ChartHypothesis *bestHypo = GetBestHypothesis();
+	  OutputBestHypo(collector, bestHypo, translationId);
+  }
+}
+
 void ChartManager::OutputNBest(OutputCollector *collector) const
 {
 	const StaticData &staticData = StaticData::Instance();
@@ -355,7 +365,7 @@ void ChartManager::OutputNBestList(OutputCollector *collector,
     out << translationId << " ||| ";
     OutputSurface(out, outputPhrase, outputFactorOrder, false);
     out << " ||| ";
-    OutputAllFeatureScores(derivation.scoreBreakdown, out);
+    derivation.scoreBreakdown.OutputAllFeatureScores(out);
     out << " ||| " << derivation.score;
 
     // optionally, print word alignments
@@ -804,6 +814,63 @@ void ChartManager::OutputSearchGraphHypergraph() const
   if (staticData.GetOutputSearchGraphHypergraph()) {
 	  HypergraphOutput<ChartManager> hypergraphOutputChart(PRECISION);
 	  hypergraphOutputChart.Write(*this);
+  }
+}
+
+void ChartManager::OutputBestHypo(OutputCollector *collector, const ChartHypothesis *hypo, long translationId) const
+{
+  if (!collector)
+    return;
+  std::ostringstream out;
+  FixPrecision(out);
+  if (hypo != NULL) {
+    VERBOSE(1,"BEST TRANSLATION: " << *hypo << endl);
+    VERBOSE(3,"Best path: ");
+    Backtrack(hypo);
+    VERBOSE(3,"0" << std::endl);
+
+    if (StaticData::Instance().GetOutputHypoScore()) {
+      out << hypo->GetTotalScore() << " ";
+    }
+
+    if (StaticData::Instance().IsPathRecoveryEnabled()) {
+      out << "||| ";
+    }
+    Phrase outPhrase(ARRAY_SIZE_INCR);
+    hypo->GetOutputPhrase(outPhrase);
+
+    // delete 1st & last
+    UTIL_THROW_IF2(outPhrase.GetSize() < 2,
+  		  "Output phrase should have contained at least 2 words (beginning and end-of-sentence)");
+
+    outPhrase.RemoveWord(0);
+    outPhrase.RemoveWord(outPhrase.GetSize() - 1);
+
+    const std::vector<FactorType> outputFactorOrder = StaticData::Instance().GetOutputFactorOrder();
+    string output = outPhrase.GetStringRep(outputFactorOrder);
+    out << output << endl;
+  } else {
+    VERBOSE(1, "NO BEST TRANSLATION" << endl);
+
+    if (StaticData::Instance().GetOutputHypoScore()) {
+      out << "0 ";
+    }
+
+    out << endl;
+  }
+  collector->Write(translationId, out.str());
+}
+
+void ChartManager::Backtrack(const ChartHypothesis *hypo) const
+{
+  const vector<const ChartHypothesis*> &prevHypos = hypo->GetPrevHypos();
+
+  vector<const ChartHypothesis*>::const_iterator iter;
+  for (iter = prevHypos.begin(); iter != prevHypos.end(); ++iter) {
+    const ChartHypothesis *prevHypo = *iter;
+
+    VERBOSE(3,prevHypo->GetId() << " <= ");
+    Backtrack(prevHypo);
   }
 }
 

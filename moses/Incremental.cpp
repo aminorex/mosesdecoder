@@ -163,7 +163,7 @@ template <class Model> void Fill<Model>::AddPhraseOOV(TargetPhrase &phrase, std:
 {
   std::vector<lm::WordIndex> words;
   UTIL_THROW_IF2(phrase.GetSize() > 1,
-		  "OOV target phrase should be 0 or 1 word in length");
+                 "OOV target phrase should be 0 or 1 word in length");
   if (phrase.GetSize())
     words.push_back(Convert(phrase.GetWord(0)));
 
@@ -183,9 +183,9 @@ template <class Model> void Fill<Model>::AddPhraseOOV(TargetPhrase &phrase, std:
 // for pruning
 template <class Model> float Fill<Model>::GetBestScore(const ChartCellLabel *chartCell) const
 {
-    search::PartialVertex vertex = chartCell->GetStack().incr->RootAlternate();
-    UTIL_THROW_IF2(vertex.Empty(), "hypothesis with empty stack");
-    return vertex.Bound();
+  search::PartialVertex vertex = chartCell->GetStack().incr->RootAlternate();
+  UTIL_THROW_IF2(vertex.Empty(), "hypothesis with empty stack");
+  return vertex.Bound();
 }
 
 // TODO: factors (but chart doesn't seem to support factors anyway).
@@ -283,6 +283,20 @@ const std::vector<search::Applied> &Manager::GetNBest() const
   return *completed_nbest_;
 }
 
+void Manager::OutputBest(OutputCollector *collector) const
+{
+  const long translationId = m_source.GetTranslationId();
+  const std::vector<search::Applied> &nbest = GetNBest();
+  if (!nbest.empty()) {
+	OutputBestHypo(collector, nbest[0], translationId);
+  }
+  else {
+	OutputBestNone(collector, translationId);
+  }
+
+}
+
+
 void Manager::OutputNBest(OutputCollector *collector)  const
 {
   if (collector == NULL) {
@@ -315,7 +329,7 @@ void Manager::OutputNBestList(OutputCollector *collector, const std::vector<sear
     out << translationId << " ||| ";
     OutputSurface(out, outputPhrase, outputFactorOrder, false);
     out << " ||| ";
-    OutputAllFeatureScores(features, out);
+    features.OutputAllFeatureScores(out);
     out << " ||| " << i->GetScore() << '\n';
   }
   out << std::flush;
@@ -462,6 +476,38 @@ void Manager::OutputTreeFragmentsTranslationOptions(std::ostream &out,
   const search::Applied *child = applied->Children();
   for (size_t i = 0; i < applied->GetArity(); i++) {
       OutputTreeFragmentsTranslationOptions(out, applicationContext, child++, sentence, translationId);
+  }
+}
+
+void Manager::OutputBestHypo(OutputCollector *collector, search::Applied applied, long translationId) const
+{
+  if (collector == NULL) return;
+  std::ostringstream out;
+  FixPrecision(out);
+  if (StaticData::Instance().GetOutputHypoScore()) {
+    out << applied.GetScore() << ' ';
+  }
+  Phrase outPhrase;
+  Incremental::ToPhrase(applied, outPhrase);
+  // delete 1st & last
+  UTIL_THROW_IF2(outPhrase.GetSize() < 2,
+		  "Output phrase should have contained at least 2 words (beginning and end-of-sentence)");
+  outPhrase.RemoveWord(0);
+  outPhrase.RemoveWord(outPhrase.GetSize() - 1);
+  out << outPhrase.GetStringRep(StaticData::Instance().GetOutputFactorOrder());
+  out << '\n';
+  collector->Write(translationId, out.str());
+
+  VERBOSE(1,"BEST TRANSLATION: " << outPhrase << "[total=" << applied.GetScore() << "]" << std::endl);
+}
+
+void Manager::OutputBestNone(OutputCollector *collector, long translationId) const
+{
+  if (collector == NULL) return;
+  if (StaticData::Instance().GetOutputHypoScore()) {
+	  collector->Write(translationId, "0 \n");
+  } else {
+	  collector->Write(translationId, "\n");
   }
 }
 
