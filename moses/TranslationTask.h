@@ -72,8 +72,7 @@ private:
     Syntax::T2S::Manager<RuleMatcher> manager(*tree);
     manager.Decode();
     // 1-best
-    const Syntax::SHyperedge *best = manager.GetBestSHyperedge();
-    m_ioWrapper.OutputBestHypo(best, translationId);
+    manager.OutputBest(m_ioWrapper.GetSingleBestOutputCollector());
     // n-best
     manager.OutputNBest(m_ioWrapper.GetNBestOutputCollector());
     // Write 1-best derivation (-translation-details / -T option).
@@ -93,8 +92,7 @@ private:
     Syntax::F2S::Manager<RuleMatcher> manager(*tree);
     manager.Decode();
     // 1-best
-    const Syntax::SHyperedge *best = manager.GetBestSHyperedge();
-    m_ioWrapper.OutputBestHypo(best, translationId);
+    manager.OutputBest(m_ioWrapper.GetSingleBestOutputCollector());
     // n-best
     manager.OutputNBest(m_ioWrapper.GetNBestOutputCollector());
     // Write 1-best derivation (-translation-details / -T option).
