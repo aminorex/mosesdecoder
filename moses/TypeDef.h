@@ -77,6 +77,9 @@ const size_t DEFAULT_VERBOSE_LEVEL = 1;
 // output floats with five significant digits
 static const size_t PRECISION = 3;
 
+// tolerance for equality in floating point comparisons
+const float FLOAT_EPSILON = 0.0001;
+
 // enums.
 // must be 0, 1, 2, ..., unless otherwise stated
 
@@ -93,7 +96,6 @@ enum FactorDirection {
 enum DecodeType {
   Translate
   ,Generate
-  ,InsertNullFertilityWord //! an optional step that attempts to insert a few closed-class words to improve LM scores
 };
 
 namespace LexReorderType
@@ -121,6 +123,7 @@ enum InputTypeEnum {
                                 ,WordLatticeInput				= 2
                                     ,TreeInputType					= 3
                                         ,WordLatticeInput2			= 4
+                                        , TabbedSentenceInput = 5
 
 };
 
