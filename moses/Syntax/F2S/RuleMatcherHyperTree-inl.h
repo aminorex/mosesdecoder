@@ -8,16 +8,14 @@ namespace F2S
 {
 
 template<typename Callback>
-RuleMatcherHyperTree<Callback>::RuleMatcherHyperTree(const InputForest &forest,
-                                                     const HyperTree &ruleTrie)
-    : m_inputForest(forest)
-    , m_ruleTrie(ruleTrie)
+RuleMatcherHyperTree<Callback>::RuleMatcherHyperTree(const HyperTree &ruleTrie)
+    : m_ruleTrie(ruleTrie)
 {
 }
 
 template<typename Callback>
 void RuleMatcherHyperTree<Callback>::EnumerateHyperedges(
-    const InputForest::Vertex &v, Callback &callback)
+    const Forest::Vertex &v, Callback &callback)
 {
   const HyperTree::Node &root = m_ruleTrie.GetRootNode();
   HyperPath::NodeSeq nodeSeq(1, v.pvertex.symbol[0]->GetId());
@@ -37,7 +35,7 @@ void RuleMatcherHyperTree<Callback>::EnumerateHyperedges(
     if (fp.second->HasRules()) {
       m_hyperedge.tail.clear();
       for (FNS::const_iterator p = fp.first.begin(); p != fp.first.end(); ++p) {
-        const InputForest::Vertex *v = *p;
+        const Forest::Vertex *v = *p;
         m_hyperedge.tail.push_back(const_cast<PVertex *>(&(v->pvertex)));
       }
       m_hyperedge.translations = &(fp.second->GetTargetPhraseCollection());
@@ -72,11 +70,10 @@ void RuleMatcherHyperTree<Callback>::PropagateNextLexel(const FP &fp)
         pos += 2;
       } else {
         const int subSeqLength = SubSeqLength(edgeLabel, pos);
-        const std::vector<InputForest::Hyperedge> &incoming =
-            fp.first[i]->incoming;
-        for (std::vector<InputForest::Hyperedge>::const_iterator q =
+        const std::vector<Forest::Hyperedge*> &incoming = fp.first[i]->incoming;
+        for (std::vector<Forest::Hyperedge *>::const_iterator q =
              incoming.begin(); q != incoming.end(); ++q) {
-          const InputForest::Hyperedge &edge = *q;
+          const Forest::Hyperedge &edge = **q;
           if (MatchChildren(edge.tail, edgeLabel, pos, subSeqLength)) {
             tfns.resize(tfns.size()+1);
             tfns.back().assign(edge.tail.begin(), edge.tail.end());
@@ -124,7 +121,7 @@ void RuleMatcherHyperTree<Callback>::CartesianProduct(const std::vector<FNS> &x,
 
 template<typename Callback>
 bool RuleMatcherHyperTree<Callback>::MatchChildren(
-    const std::vector<InputForest::Vertex *> &children,
+    const std::vector<Forest::Vertex *> &children,
     const HyperPath::NodeSeq &edgeLabel,
     std::size_t pos,
     std::size_t subSeqSize)

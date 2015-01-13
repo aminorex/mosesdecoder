@@ -10,7 +10,7 @@ namespace Moses
 {
 namespace Syntax
 {
-namespace T2S
+namespace F2S
 {
 
 // Given a PHyperedge object and SStackSet produces a SHyperedgeBundle object.
@@ -27,6 +27,6 @@ inline void PHyperedgeToSHyperedgeBundle(const PHyperedge &hyperedge,
   }
 }
 
-}  // T2S
+}  // F2S
 }  // Syntax
 }  // Moses

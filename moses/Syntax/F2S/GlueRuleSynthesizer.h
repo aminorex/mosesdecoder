@@ -5,7 +5,7 @@
 
 #include "HyperTree.h"
 #include "HyperTreeCreator.h"
-#include "InputForest.h"
+#include "Forest.h"
 
 namespace Moses
 {
@@ -21,12 +21,12 @@ class GlueRuleSynthesizer : public HyperTreeCreator
 
   // Synthesize the minimal, monotone rule that can be applied to the given
   // hyperedge and add it to the rule trie.
-  void SynthesizeRule(const InputForest::Hyperedge &);
+  void SynthesizeRule(const Forest::Hyperedge &);
 
  private:
-  void SynthesizeHyperPath(const InputForest::Hyperedge &, HyperPath &);
+  void SynthesizeHyperPath(const Forest::Hyperedge &, HyperPath &);
 
-  TargetPhrase *SynthesizeTargetPhrase(const InputForest::Hyperedge &);
+  TargetPhrase *SynthesizeTargetPhrase(const Forest::Hyperedge &);
 
   HyperTree &m_hyperTree;
   Phrase m_dummySourcePhrase;

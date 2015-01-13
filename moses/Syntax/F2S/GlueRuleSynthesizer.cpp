@@ -22,7 +22,7 @@ GlueRuleSynthesizer::GlueRuleSynthesizer(HyperTree &trie)
   delete lhs;
 }
 
-void GlueRuleSynthesizer::SynthesizeRule(const InputForest::Hyperedge &e)
+void GlueRuleSynthesizer::SynthesizeRule(const Forest::Hyperedge &e)
 {
   HyperPath source;
   SynthesizeHyperPath(e, source);
@@ -32,21 +32,21 @@ void GlueRuleSynthesizer::SynthesizeRule(const InputForest::Hyperedge &e)
   tpc.Add(tp);
 }
 
-void GlueRuleSynthesizer::SynthesizeHyperPath(const InputForest::Hyperedge &e,
+void GlueRuleSynthesizer::SynthesizeHyperPath(const Forest::Hyperedge &e,
                                               HyperPath &path)
 {
   path.nodeSeqs.clear();
   path.nodeSeqs.resize(2);
   path.nodeSeqs[0].push_back(e.head->pvertex.symbol[0]->GetId());
-  for (std::vector<InputForest::Vertex*>::const_iterator p = e.tail.begin();
+  for (std::vector<Forest::Vertex*>::const_iterator p = e.tail.begin();
        p != e.tail.end(); ++p) {
-    InputForest::Vertex &child = **p;
+    const Forest::Vertex &child = **p;
     path.nodeSeqs[1].push_back(child.pvertex.symbol[0]->GetId());
   }
 }
 
 TargetPhrase *GlueRuleSynthesizer::SynthesizeTargetPhrase(
-    const InputForest::Hyperedge &e)
+    const Forest::Hyperedge &e)
 {
   const StaticData &staticData = StaticData::Instance();
 

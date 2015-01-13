@@ -6,6 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
 
+#include "moses/Syntax/F2S/PVertexToStackMap.h"
 #include "moses/Syntax/KBestExtractor.h"
 #include "moses/Syntax/Manager.h"
 #include "moses/Syntax/SVertexStack.h"
@@ -13,7 +14,6 @@
 #include "moses/Word.h"
 
 #include "InputTree.h"
-#include "PVertexToStackMap.h"
 #include "RuleTrie.h"
 
 namespace Moses
@@ -53,7 +53,7 @@ class Manager : public Syntax::Manager
 
   const TreeInput &m_treeSource;
   InputTree m_inputTree;
-  PVertexToStackMap m_stackMap;
+  F2S::PVertexToStackMap m_stackMap;
   boost::shared_ptr<RuleTrie> m_glueRuleTrie;
   std::vector<boost::shared_ptr<RuleMatcher> > m_ruleMatchers;
   RuleMatcher *m_glueRuleMatcher;

@@ -1,13 +1,13 @@
 #include "RuleTableFF.h"
 
 #include "moses/StaticData.h"
+#include "moses/Syntax/F2S/HyperTree.h"
+#include "moses/Syntax/F2S/HyperTreeLoader.h"
 #include "moses/Syntax/S2T/RuleTrieCYKPlus.h"
 #include "moses/Syntax/S2T/RuleTrieLoader.h"
 #include "moses/Syntax/S2T/RuleTrieScope3.h"
 #include "moses/Syntax/T2S/RuleTrie.h"
 #include "moses/Syntax/T2S/RuleTrieLoader.h"
-#include "moses/Syntax/F2S/HyperTree.h"
-#include "moses/Syntax/F2S/HyperTreeLoader.h"
 
 namespace Moses
 {
@@ -31,7 +31,12 @@ void RuleTableFF::Load()
   SetFeaturesToApply();
 
   const StaticData &staticData = StaticData::Instance();
-  if (staticData.UseS2TDecoder()) {
+  if (staticData.UseF2SDecoder()) {
+    F2S::HyperTree *trie = new F2S::HyperTree(this);
+    F2S::HyperTreeLoader loader;
+    loader.Load(m_input, m_output, m_filePath, *this, *trie);
+    m_table = trie;
+  } else if (staticData.UseS2TDecoder()) {
     S2TParsingAlgorithm algorithm = staticData.GetS2TParsingAlgorithm();
     if (algorithm == RecursiveCYKPlus) {
       S2T::RuleTrieCYKPlus *trie = new S2T::RuleTrieCYKPlus(this);
@@ -49,11 +54,6 @@ void RuleTableFF::Load()
   } else if (staticData.UseT2SDecoder()) {
     T2S::RuleTrie *trie = new T2S::RuleTrie(this);
     T2S::RuleTrieLoader loader;
-    loader.Load(m_input, m_output, m_filePath, *this, *trie);
-    m_table = trie;
-  } else if (staticData.UseF2SDecoder()) {
-    F2S::HyperTree *trie = new F2S::HyperTree(this);
-    F2S::HyperTreeLoader loader;
     loader.Load(m_input, m_output, m_filePath, *this, *trie);
     m_table = trie;
   } else {
