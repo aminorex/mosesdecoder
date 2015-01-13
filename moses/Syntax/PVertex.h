@@ -17,5 +17,10 @@ struct PVertex
   Word symbol;
 };
 
+inline bool operator==(const PVertex &v, const PVertex &w)
+{
+  return v.span == w.span && v.symbol == w.symbol;
+}
+
 }  // Syntax
 }  // Moses

@@ -10,10 +10,10 @@
 #include "moses/Incremental.h"
 #include "mbr.h"
 
+#include "moses/Syntax/F2S/RuleMatcherCallback.h"
 #include "moses/Syntax/F2S/RuleMatcherHyperTree.h"
 #include "moses/Syntax/S2T/Parsers/RecursiveCYKPlusParser/RecursiveCYKPlusParser.h"
 #include "moses/Syntax/S2T/Parsers/Scope3Parser/Parser.h"
-#include "moses/Syntax/T2S/RuleMatcherCallback.h"
 #include "moses/Syntax/T2S/RuleMatcherSCFG.h"
 
 #include "util/exception.hh"
@@ -67,8 +67,13 @@ void TranslationTask::Run()
 		manager = new Manager(*m_source);
 		break;
 	case true:
-	    if (staticData.UseS2TDecoder()) {
-	      // various syntax models by Phul Williams
+	    if (staticData.UseF2SDecoder()) {
+        // forest-to-string decoding (ask Phil Williams)
+        typedef Syntax::F2S::RuleMatcherCallback Callback;
+        typedef Syntax::F2S::RuleMatcherHyperTree<Callback> RuleMatcher;
+        manager = new Syntax::F2S::Manager<RuleMatcher>(*m_source);
+	    } else if (staticData.UseS2TDecoder()) {
+        // new-style string-to-tree decoding (ask Phil Williams)
 	      S2TParsingAlgorithm algorithm = staticData.GetS2TParsingAlgorithm();
 	      if (algorithm == RecursiveCYKPlus) {
 	        typedef Syntax::S2T::EagerParserCallback Callback;
@@ -81,16 +86,8 @@ void TranslationTask::Run()
 	      } else {
 	        UTIL_THROW2("ERROR: unhandled S2T parsing algorithm");
 	      }
-	    } else if (staticData.UseF2SDecoder()) {
-        typedef Syntax::T2S::RuleMatcherCallback Callback;
-        typedef Syntax::F2S::RuleMatcherHyperTree<Callback> RuleMatcher;
-        const TreeInput *tree = NULL;
-        if (!(tree = dynamic_cast<const TreeInput *>(m_source))) {
-          // TODO
-        }
-        manager = new Syntax::F2S::Manager<RuleMatcher>(*tree);
 	    } else if (staticData.UseT2SDecoder()) {
-        typedef Syntax::T2S::RuleMatcherCallback Callback;
+        typedef Syntax::F2S::RuleMatcherCallback Callback;
         typedef Syntax::T2S::RuleMatcherSCFG<Callback> RuleMatcher;
         const TreeInput *tree = NULL;
         if (!(tree = dynamic_cast<const TreeInput *>(m_source))) {

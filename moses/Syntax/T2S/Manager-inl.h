@@ -4,6 +4,8 @@
 #include "moses/StaticData.h"
 #include "moses/Syntax/BoundedPriorityContainer.h"
 #include "moses/Syntax/CubeQueue.h"
+#include "moses/Syntax/F2S/DerivationWriter.h"
+#include "moses/Syntax/F2S/RuleMatcherCallback.h"
 #include "moses/Syntax/PHyperedge.h"
 #include "moses/Syntax/RuleTable.h"
 #include "moses/Syntax/RuleTableFF.h"
@@ -13,10 +15,8 @@
 #include "moses/Syntax/SymbolEqualityPred.h"
 #include "moses/Syntax/SymbolHasher.h"
 
-#include "DerivationWriter.h"
 #include "GlueRuleSynthesizer.h"
 #include "InputTreeBuilder.h"
-#include "RuleMatcherCallback.h"
 #include "RuleTrie.h"
 
 namespace Moses
@@ -105,7 +105,7 @@ void Manager<RuleMatcher>::Decode()
   InitializeRuleMatchers();
 
   // Create a callback to process the PHyperedges produced by the rule matchers.
-  RuleMatcherCallback callback(m_stackMap, ruleLimit);
+  F2S::RuleMatcherCallback callback(m_stackMap, ruleLimit);
 
   // Create a glue rule synthesizer.
   GlueRuleSynthesizer glueRuleSynthesizer(*m_glueRuleTrie);
@@ -173,7 +173,7 @@ template<typename RuleMatcher>
 const SHyperedge *Manager<RuleMatcher>::GetBestSHyperedge() const
 {
   const InputTree::Node &rootNode = m_inputTree.nodes.back();
-  PVertexToStackMap::const_iterator p = m_stackMap.find(&(rootNode.pvertex));
+  F2S::PVertexToStackMap::const_iterator p = m_stackMap.find(&rootNode.pvertex);
   assert(p != m_stackMap.end());
   const SVertexStack &stack = p->second;
   assert(!stack.empty());
@@ -193,7 +193,7 @@ void Manager<RuleMatcher>::ExtractKBest(
 
   // Get the top-level SVertex stack.
   const InputTree::Node &rootNode = m_inputTree.nodes.back();
-  PVertexToStackMap::const_iterator p = m_stackMap.find(&(rootNode.pvertex));
+  F2S::PVertexToStackMap::const_iterator p = m_stackMap.find(&rootNode.pvertex);
   assert(p != m_stackMap.end());
   const SVertexStack &stack = p->second;
   assert(!stack.empty());
@@ -292,7 +292,7 @@ void Manager<RuleMatcher>::OutputDetailedTranslationReport(
   }
   long translationId = m_source.GetTranslationId();
   std::ostringstream out;
-  DerivationWriter::Write(*best, translationId, out);
+  F2S::DerivationWriter::Write(*best, translationId, out);
   collector->Write(translationId, out.str());
 }
 

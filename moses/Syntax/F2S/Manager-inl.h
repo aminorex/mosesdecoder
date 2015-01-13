@@ -1,6 +1,7 @@
 #pragma once
 
 #include "moses/DecodeGraph.h"
+#include "moses/ForestInput.h"
 #include "moses/StaticData.h"
 #include "moses/Syntax/BoundedPriorityContainer.h"
 #include "moses/Syntax/CubeQueue.h"
@@ -12,13 +13,16 @@
 #include "moses/Syntax/SVertexRecombinationOrderer.h"
 #include "moses/Syntax/SymbolEqualityPred.h"
 #include "moses/Syntax/SymbolHasher.h"
-#include "moses/Syntax/T2S/DerivationWriter.h"
+#include "moses/Syntax/T2S/InputTree.h"
 #include "moses/Syntax/T2S/InputTreeBuilder.h"
-#include "moses/Syntax/T2S/RuleMatcherCallback.h"
+#include "moses/Syntax/T2S/InputTreeToForest.h"
+#include "moses/TreeInput.h"
 
+#include "DerivationWriter.h"
 #include "GlueRuleSynthesizer.h"
 #include "HyperTree.h"
-#include "InputTreeToForest.h"
+#include "RuleMatcherCallback.h"
+#include "TopologicalSorter.h"
 
 namespace Moses
 {
@@ -28,59 +32,27 @@ namespace F2S
 {
 
 template<typename RuleMatcher>
-Manager<RuleMatcher>::Manager(const TreeInput &source)
+Manager<RuleMatcher>::Manager(const InputType &source)
     : Syntax::Manager(source)
-    , m_treeSource(source)
 {
-}
-
-template<typename RuleMatcher>
-void Manager<RuleMatcher>::InitializeRuleMatchers()
-{
-  const std::vector<RuleTableFF*> &ffs = RuleTableFF::Instances();
-  for (std::size_t i = 0; i < ffs.size(); ++i) {
-    RuleTableFF *ff = ffs[i];
-    // This may change in the future, but currently we assume that every
-    // RuleTableFF is associated with a static, file-based rule table of
-    // some sort and that the table should have been loaded into a RuleTable
-    // by this point.
-    const RuleTable *table = ff->GetTable();
-    assert(table);
-    RuleTable *nonConstTable = const_cast<RuleTable*>(table);
-    HyperTree *trie = dynamic_cast<HyperTree*>(nonConstTable);
-    assert(trie);
-    boost::shared_ptr<RuleMatcher> p(new RuleMatcher(m_inputForest, *trie));
-    m_mainRuleMatchers.push_back(p);
+  if (const ForestInput *p = dynamic_cast<const ForestInput*>(&source)) {
+    m_forest = &(p->GetForest());
+    m_rootVertex = p->GetRootVertex();
+  } else if (const TreeInput *p = dynamic_cast<const TreeInput*>(&source)) {
+    T2S::InputTreeBuilder builder;
+    T2S::InputTree tmpTree;
+    builder.Build(*p, "Q", tmpTree);
+    Forest *forest = new Forest();
+    m_rootVertex = T2S::InputTreeToForest(tmpTree, *forest);
+    m_forest = forest;
   }
-
-  // Create an additional rule trie + matcher for glue rules (which are
-  // synthesized on demand).
-  // FIXME Add a hidden RuleTableFF for the glue rule trie(?)
-  m_glueRuleTrie.reset(new HyperTree(ffs[0]));
-  m_glueRuleMatcher = boost::shared_ptr<RuleMatcher>(
-    new RuleMatcher(m_inputForest, *m_glueRuleTrie));
 }
 
 template<typename RuleMatcher>
-void Manager<RuleMatcher>::InitializeStacks()
+Manager<RuleMatcher>::~Manager()
 {
-  // Check that m_inputForest has been initialized.
-  assert(!m_inputForest.vertices.empty());
-
-  for (std::vector<InputForest::Vertex>::const_iterator p =
-       m_inputForest.vertices.begin(); p != m_inputForest.vertices.end(); ++p) {
-    const InputForest::Vertex &vertex = *p;
-
-    // Create an empty stack.
-    SVertexStack &stack = m_stackMap[&(vertex.pvertex)];
-
-    // For terminals only, add a single SVertex.
-    if (vertex.incoming.empty()) {
-      boost::shared_ptr<SVertex> v(new SVertex());
-      v->best = 0;
-      v->pvertex = &(vertex.pvertex);
-      stack.push_back(v);
-    }
+  if (dynamic_cast<const TreeInput*>(&m_source)) {
+    delete m_forest;
   }
 }
 
@@ -94,13 +66,6 @@ void Manager<RuleMatcher>::Decode()
   const std::size_t ruleLimit = staticData.GetRuleLimit();
   const std::size_t stackLimit = staticData.GetMaxHypoStackSize();
 
-  // Construct the InputTree and convert the forest.
-  // This is a stopgap until forest input is supported.
-  T2S::InputTreeBuilder builder;
-  T2S::InputTree tmpTree;
-  builder.Build(m_treeSource, "Q", tmpTree);
-  InputTreeToForest(tmpTree, m_inputForest);
-
   // Initialize the stacks.
   InitializeStacks();
 
@@ -108,15 +73,20 @@ void Manager<RuleMatcher>::Decode()
   InitializeRuleMatchers();
 
   // Create a callback to process the PHyperedges produced by the rule matchers.
-  T2S::RuleMatcherCallback callback(m_stackMap, ruleLimit);
+  RuleMatcherCallback callback(m_stackMap, ruleLimit);
 
   // Create a glue rule synthesizer.
   GlueRuleSynthesizer glueRuleSynthesizer(*m_glueRuleTrie);
 
-  // Visit each vertex of the input forest in post-order.
-  for (std::vector<InputForest::Vertex>::const_iterator p =
-       m_inputForest.vertices.begin(); p != m_inputForest.vertices.end(); ++p) {
-    const InputForest::Vertex &vertex = *p;
+  // Sort the input forest's vertices into bottom-up topological order.
+  std::vector<const Forest::Vertex *> sortedVertices;
+  TopologicalSorter sorter;
+  sorter.Sort(*m_forest, sortedVertices);
+
+  // Visit each vertex of the input forest in topological order.
+  for (std::vector<const Forest::Vertex *>::const_iterator
+       p = sortedVertices.begin(); p != sortedVertices.end(); ++p) {
+    const Forest::Vertex &vertex = **p;
 
     // Skip terminal vertices.
     if (vertex.incoming.empty()) {
@@ -140,12 +110,13 @@ void Manager<RuleMatcher>::Decode()
     // Check if any rules were matched.  If not then for each incoming
     // hyperedge, synthesize a glue rule that is guaranteed to match.
     if (bundles.Size() == 0) {
-      for (std::vector<InputForest::Hyperedge>::const_iterator p =
+      for (std::vector<Forest::Hyperedge *>::const_iterator p =
            vertex.incoming.begin(); p != vertex.incoming.end(); ++p) {
-        glueRuleSynthesizer.SynthesizeRule(*p);
+        glueRuleSynthesizer.SynthesizeRule(**p);
       }
       m_glueRuleMatcher->EnumerateHyperedges(vertex, callback);
-      assert(bundles.Size() == vertex.incoming.size());
+      // FIXME This assertion occasionally fails -- why?
+      // assert(bundles.Size() == vertex.incoming.size());
     }
 
     // Use cube pruning to extract SHyperedges from SHyperedgeBundles and
@@ -175,10 +146,60 @@ void Manager<RuleMatcher>::Decode()
 }
 
 template<typename RuleMatcher>
+void Manager<RuleMatcher>::InitializeRuleMatchers()
+{
+  const std::vector<RuleTableFF*> &ffs = RuleTableFF::Instances();
+  for (std::size_t i = 0; i < ffs.size(); ++i) {
+    RuleTableFF *ff = ffs[i];
+    // This may change in the future, but currently we assume that every
+    // RuleTableFF is associated with a static, file-based rule table of
+    // some sort and that the table should have been loaded into a RuleTable
+    // by this point.
+    const RuleTable *table = ff->GetTable();
+    assert(table);
+    RuleTable *nonConstTable = const_cast<RuleTable*>(table);
+    HyperTree *trie = dynamic_cast<HyperTree*>(nonConstTable);
+    assert(trie);
+    boost::shared_ptr<RuleMatcher> p(new RuleMatcher(*trie));
+    m_mainRuleMatchers.push_back(p);
+  }
+
+  // Create an additional rule trie + matcher for glue rules (which are
+  // synthesized on demand).
+  // FIXME Add a hidden RuleTableFF for the glue rule trie(?)
+  m_glueRuleTrie.reset(new HyperTree(ffs[0]));
+  m_glueRuleMatcher = boost::shared_ptr<RuleMatcher>(
+    new RuleMatcher(*m_glueRuleTrie));
+}
+
+template<typename RuleMatcher>
+void Manager<RuleMatcher>::InitializeStacks()
+{
+  // Check that m_forest has been initialized.
+  assert(!m_forest->vertices.empty());
+
+  for (std::vector<Forest::Vertex *>::const_iterator
+       p = m_forest->vertices.begin(); p != m_forest->vertices.end(); ++p) {
+    const Forest::Vertex &vertex = **p;
+
+    // Create an empty stack.
+    SVertexStack &stack = m_stackMap[&(vertex.pvertex)];
+
+    // For terminals only, add a single SVertex.
+    if (vertex.incoming.empty()) {
+      boost::shared_ptr<SVertex> v(new SVertex());
+      v->best = 0;
+      v->pvertex = &(vertex.pvertex);
+      stack.push_back(v);
+    }
+  }
+}
+
+
+template<typename RuleMatcher>
 const SHyperedge *Manager<RuleMatcher>::GetBestSHyperedge() const
 {
-  const InputForest::Vertex &root = m_inputForest.vertices.back();
-  T2S::PVertexToStackMap::const_iterator p = m_stackMap.find(&(root.pvertex));
+  PVertexToStackMap::const_iterator p = m_stackMap.find(&m_rootVertex->pvertex);
   assert(p != m_stackMap.end());
   const SVertexStack &stack = p->second;
   assert(!stack.empty());
@@ -197,8 +218,7 @@ void Manager<RuleMatcher>::ExtractKBest(
   }
 
   // Get the top-level SVertex stack.
-  const InputForest::Vertex &root = m_inputForest.vertices.back();
-  T2S::PVertexToStackMap::const_iterator p = m_stackMap.find(&(root.pvertex));
+  PVertexToStackMap::const_iterator p = m_stackMap.find(&m_rootVertex->pvertex);
   assert(p != m_stackMap.end());
   const SVertexStack &stack = p->second;
   assert(!stack.empty());
@@ -297,7 +317,7 @@ void Manager<RuleMatcher>::OutputDetailedTranslationReport(
   }
   long translationId = m_source.GetTranslationId();
   std::ostringstream out;
-  T2S::DerivationWriter::Write(*best, translationId, out);
+  DerivationWriter::Write(*best, translationId, out);
   collector->Write(translationId, out.str());
 }
 

@@ -11,7 +11,7 @@ namespace Syntax
 {
 struct SHyperedge;
 
-namespace T2S
+namespace F2S
 {
 
 // Writes a string representation of a derivation to a std::ostream.  This is
@@ -31,6 +31,6 @@ class DerivationWriter
   static void WriteSymbol(const Word &, std::ostream &);
 };
 
-}  // namespace T2S
+}  // namespace F2S
 }  // namespace Syntax
 }  // namespace Moses

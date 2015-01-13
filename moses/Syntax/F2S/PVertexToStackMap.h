@@ -10,11 +10,11 @@ namespace Moses
 {
 namespace Syntax
 {
-namespace T2S
+namespace F2S
 {
 
 typedef boost::unordered_map<const PVertex *, SVertexStack> PVertexToStackMap;
 
-}  // namespace T2S
+}  // namespace F2S
 }  // namespace Syntax
 }  // namespace Moses

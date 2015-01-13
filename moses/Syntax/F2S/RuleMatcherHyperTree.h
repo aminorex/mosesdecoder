@@ -2,7 +2,7 @@
 
 #include "moses/Syntax/PHyperedge.h"
 
-#include "InputForest.h"
+#include "Forest.h"
 #include "HyperTree.h"
 #include "RuleMatcher.h"
 
@@ -24,14 +24,14 @@ template<typename Callback>
 class RuleMatcherHyperTree : public RuleMatcher<Callback>
 {
  public:
-  RuleMatcherHyperTree(const InputForest &, const HyperTree &);
+  RuleMatcherHyperTree(const HyperTree &);
 
   ~RuleMatcherHyperTree() {}
 
-  void EnumerateHyperedges(const InputForest::Vertex &, Callback &);
+  void EnumerateHyperedges(const Forest::Vertex &, Callback &);
 
  private:
-  typedef std::vector<const InputForest::Vertex *> FNS;
+  typedef std::vector<const Forest::Vertex *> FNS;
   typedef std::pair<FNS, const HyperTree::Node *> FP;
 
   void CartesianProduct(const std::vector<FNS> &, const std::vector<FNS> &,
@@ -39,17 +39,15 @@ class RuleMatcherHyperTree : public RuleMatcher<Callback>
 
   int CountCommas(const HyperPath::NodeSeq &);
 
-  void Match(const InputForest::Vertex &, const HyperTree::Node &, int,
-             Callback &);
+  void Match(const Forest::Vertex &, const HyperTree::Node &, int, Callback &);
 
-  bool MatchChildren(const std::vector<InputForest::Vertex *> &,
+  bool MatchChildren(const std::vector<Forest::Vertex *> &,
                      const HyperPath::NodeSeq &, std::size_t, std::size_t);
 
   void PropagateNextLexel(const FP &);
 
   int SubSeqLength(const HyperPath::NodeSeq &, int);
 
-  const InputForest &m_inputForest;
   const HyperTree &m_ruleTrie;
   PHyperedge m_hyperedge;
   std::queue<FP> m_queue;  // Called "SFP" in Zhang et al. (2009)

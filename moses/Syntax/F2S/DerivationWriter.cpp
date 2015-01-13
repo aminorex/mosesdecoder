@@ -8,7 +8,7 @@ namespace Moses
 {
 namespace Syntax
 {
-namespace T2S
+namespace F2S
 {
 
 // 1-best version.
@@ -96,6 +96,6 @@ void DerivationWriter::WriteSymbol(const Word &symbol, std::ostream &out)
   }
 }
 
-}  // namespace T2S
+}  // namespace F2S
 }  // namespace Syntax
 }  // namespace Moses

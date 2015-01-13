@@ -13,7 +13,7 @@ namespace Moses
 {
 namespace Syntax
 {
-namespace T2S
+namespace F2S
 {
 
 class RuleMatcherCallback {
@@ -41,6 +41,6 @@ class RuleMatcherCallback {
   BoundedPriorityContainer<SHyperedgeBundle> m_container;
 };
 
-}  // T2S
+}  // F2S
 }  // Syntax
 }  // Moses
