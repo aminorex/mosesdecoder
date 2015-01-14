@@ -36,23 +36,15 @@ Manager<RuleMatcher>::Manager(const InputType &source)
     : Syntax::Manager(source)
 {
   if (const ForestInput *p = dynamic_cast<const ForestInput*>(&source)) {
-    m_forest = &(p->GetForest());
+    m_forest = p->GetForest();
     m_rootVertex = p->GetRootVertex();
   } else if (const TreeInput *p = dynamic_cast<const TreeInput*>(&source)) {
     T2S::InputTreeBuilder builder;
     T2S::InputTree tmpTree;
     builder.Build(*p, "Q", tmpTree);
-    Forest *forest = new Forest();
+    boost::shared_ptr<Forest> forest = boost::make_shared<Forest>();
     m_rootVertex = T2S::InputTreeToForest(tmpTree, *forest);
     m_forest = forest;
-  }
-}
-
-template<typename RuleMatcher>
-Manager<RuleMatcher>::~Manager()
-{
-  if (dynamic_cast<const TreeInput*>(&m_source)) {
-    delete m_forest;
   }
 }
 

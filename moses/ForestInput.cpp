@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <boost/make_shared.hpp>
+
 #include "util/tokenize_piece.hh"
 
 #include "moses/Syntax/F2S/Forest.h"
@@ -20,7 +22,7 @@ int ForestInput::Read(std::istream &in,
 {
   using Syntax::F2S::Forest;
 
-  m_forest.Clear();
+  m_forest = boost::make_shared<Forest>();
   m_rootVertex = NULL;
   m_vertexSet.clear();
 
@@ -57,12 +59,12 @@ int ForestInput::Read(std::istream &in,
   Sentence::Read(strme, factorOrder);
 
   // Find the maximum end position of any vertex (0 if forest is empty).
-  std::size_t maxEnd = FindMaxEnd(m_forest);
+  std::size_t maxEnd = FindMaxEnd(*m_forest);
 
   // Determine which vertices are the top vertices.
   std::vector<Forest::Vertex *> topVertices;
-  if (!m_forest.vertices.empty()) {
-    FindTopVertices(m_forest, topVertices);
+  if (!m_forest->vertices.empty()) {
+    FindTopVertices(*m_forest, topVertices);
     assert(topVertices.size() >= 1);
   }
 
@@ -73,7 +75,7 @@ int ForestInput::Read(std::istream &in,
     symbol.CreateFromString(Input, factorOrder, "<s>", false);
     Syntax::PVertex pvertex(WordsRange(0, 0), symbol);
     startSymbol = new Forest::Vertex(pvertex);
-    m_forest.vertices.push_back(startSymbol);
+    m_forest->vertices.push_back(startSymbol);
   }
 
   // Add </s> vertex.
@@ -83,7 +85,7 @@ int ForestInput::Read(std::istream &in,
     symbol.CreateFromString(Input, factorOrder, "</s>", false);
     Syntax::PVertex pvertex(WordsRange(maxEnd+1, maxEnd+1), symbol);
     endSymbol = new Forest::Vertex(pvertex);
-    m_forest.vertices.push_back(endSymbol);
+    m_forest->vertices.push_back(endSymbol);
   }
 
   // Add root vertex.
@@ -92,7 +94,7 @@ int ForestInput::Read(std::istream &in,
     symbol.CreateFromString(Input, factorOrder, "Q", true);
     Syntax::PVertex pvertex(WordsRange(0, maxEnd+1), symbol);
     m_rootVertex = new Forest::Vertex(pvertex);
-    m_forest.vertices.push_back(m_rootVertex);
+    m_forest->vertices.push_back(m_rootVertex);
   }
 
   // Add root's incoming hyperedges.
@@ -122,7 +124,7 @@ Syntax::F2S::Forest::Vertex *ForestInput::AddOrDeleteVertex(Forest::Vertex *v)
 {
   std::pair<VertexSet::iterator, bool> ret = m_vertexSet.insert(v);
   if (ret.second) {
-    m_forest.vertices.push_back(*ret.first);
+    m_forest->vertices.push_back(*ret.first);
   } else {
     delete v;
   }
