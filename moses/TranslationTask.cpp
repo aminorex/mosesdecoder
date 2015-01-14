@@ -24,11 +24,12 @@ namespace Moses
 {
 
 TranslationTask::TranslationTask(InputType* source, Moses::IOWrapper &ioWrapper)
-: m_source(source)
-, m_ioWrapper(ioWrapper)
+  : m_source(source)
+  , m_ioWrapper(ioWrapper)
 {}
 
-TranslationTask::~TranslationTask() {
+TranslationTask::~TranslationTask()
+{
   delete m_source;
 }
 
