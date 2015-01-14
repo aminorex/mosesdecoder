@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/shared_ptr.hpp>
+
 #include <util/string_piece.hh>
 
 #include "moses/Syntax/F2S/Forest.h"
@@ -34,7 +36,10 @@ class ForestInput : public Sentence
   virtual TranslationOptionCollection*
   CreateTranslationOptionCollection() const;
 
-  const Syntax::F2S::Forest &GetForest() const { return m_forest; }
+  boost::shared_ptr<const Syntax::F2S::Forest> GetForest() const
+  {
+    return m_forest;
+  }
 
   const Syntax::F2S::Forest::Vertex *GetRootVertex() const
   {
@@ -75,7 +80,7 @@ class ForestInput : public Sentence
   Forest::Vertex *ParseVertex(const StringPiece &,
                               const std::vector<FactorType> &);
 
-  Forest m_forest;
+  boost::shared_ptr<Forest> m_forest;
   Forest::Vertex *m_rootVertex;
   VertexSet m_vertexSet;
 };

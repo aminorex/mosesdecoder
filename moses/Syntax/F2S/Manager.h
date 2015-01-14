@@ -31,7 +31,6 @@ class Manager : public Syntax::Manager
 {
  public:
   Manager(const InputType &);
-  ~Manager();
 
   void Decode();
 
@@ -54,7 +53,7 @@ class Manager : public Syntax::Manager
 
   void RecombineAndSort(const std::vector<SHyperedge*> &, SVertexStack &);
 
-  const Forest *m_forest;
+  boost::shared_ptr<const Forest> m_forest;
   const Forest::Vertex *m_rootVertex;
   PVertexToStackMap m_stackMap;
   boost::shared_ptr<HyperTree> m_glueRuleTrie;
