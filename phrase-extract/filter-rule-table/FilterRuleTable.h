@@ -42,15 +42,15 @@ private:
 
   // Read test set (string version)
   void ReadTestSet(std::istream &,
-                   std::vector<boost::shared_ptr<std::string> >);
+                   std::vector<boost::shared_ptr<std::string> > &);
 
   // Read test set (tree version)
   void ReadTestSet(std::istream &,
-                   std::vector<boost::shared_ptr<StringTree> >);
+                   std::vector<boost::shared_ptr<StringTree> > &);
 
   // Read test set (forest version)
   void ReadTestSet(std::istream &,
-                   std::vector<boost::shared_ptr<StringForest> >);
+                   std::vector<boost::shared_ptr<StringForest> > &);
 
 
   std::string m_name;
