@@ -130,6 +130,11 @@ bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
     for (std::vector<const IdForest::Vertex*>::const_iterator
          r = candidates.begin(); r != candidates.end(); ++r) {
       const IdForest::Vertex &v = **r;
+      // Check that the subtrees rooted at v are at least as wide as the
+      // fragment (counting each non-terminal as being one token wide).
+      if (v.value.end - v.value.start + 1 < leaves.size()) {
+        continue;
+      }
       // Check that the candidate's span covers one of the rare leaf symbols.
       bool covered = false;
       for (std::vector<std::pair<std::size_t, std::size_t> >::const_iterator
