@@ -97,8 +97,8 @@ bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
 
   // TODO Make the threshold configurable
   // If all of the leaves are common then searching the test forests for a match
-  // is potentially very expensive.  If the rarest leaf occurs 500 times or
-  // more then return true without checking.
+  // is potentially very expensive.  If the rarest leaf occurs in 500 or more
+  // sentences then return true without checking.
   if (lowestCount >= 500) {
     return true;
   }
@@ -108,18 +108,46 @@ bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
   const InnerMap &leafSentenceMap = m_idToSentence[rarestLeaf->value()];
   const InnerMap &rootSentenceMap = m_idToSentence[fragment.value()];
 
-  // For each sentence i containing the rare leaf symbol...
+  std::vector<std::pair<std::size_t, std::size_t> > spans;
+  // For each forest i that contains the rarest leaf symbol...
   for (InnerMap::const_iterator p = leafSentenceMap.begin();
        p != leafSentenceMap.end(); ++p) {
     std::size_t i = p->first;
+    // Get the set of candidate match sites in forest i (these are vertices
+    // with the same label as the root of the rule fragment).
     InnerMap::const_iterator q = rootSentenceMap.find(i);
     if (q == rootSentenceMap.end()) {
       continue;
     }
-    // For each vertex in forest i with the same symbol as the fragment root...
+    const std::vector<const IdForest::Vertex*> &candidates = q->second;
+    // Record the span(s) of the rare leaf symbol in forest i.
+    spans.clear();
     for (std::vector<const IdForest::Vertex*>::const_iterator
-         r = q->second.begin(); r != q->second.end(); ++r) {
+         r = p->second.begin(); r != p->second.end(); ++r) {
+      spans.push_back(std::make_pair((*r)->value.start, (*r)->value.end));
+    }
+    // For each candidate match site in forest i...
+    for (std::vector<const IdForest::Vertex*>::const_iterator
+         r = candidates.begin(); r != candidates.end(); ++r) {
       const IdForest::Vertex &v = **r;
+      // Check that the subtrees rooted at v are at least as wide as the
+      // fragment (counting each non-terminal as being one token wide).
+      if (v.value.end - v.value.start + 1 < leaves.size()) {
+        continue;
+      }
+      // Check that the candidate's span covers one of the rare leaf symbols.
+      bool covered = false;
+      for (std::vector<std::pair<std::size_t, std::size_t> >::const_iterator
+           s = spans.begin(); s != spans.end(); ++s) {
+        if (v.value.start <= s->first && v.value.end >= s->second) {
+          covered = true;
+          break;
+        }
+      }
+      if (!covered) {
+        continue;
+      }
+      // Attempt to match the fragment at the candidate site.
       if (MatchFragment(fragment, v)) {
         return true;
       }
