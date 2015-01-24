@@ -40,6 +40,8 @@ class ForestTsgFilter : public TsgFilter {
     std::size_t end;
   };
 
+  static const std::size_t kMatchLimit;
+
   // Represents a forest using integer vocabulary values.
   typedef Forest<IdForestValue> IdForest;
 
@@ -60,6 +62,7 @@ class ForestTsgFilter : public TsgFilter {
 
   std::vector<boost::shared_ptr<IdForest> > m_sentences;
   IdToSentenceMap m_idToSentence;
+  std::size_t m_matchCount;
 };
 
 }  // namespace FilterRuleTable

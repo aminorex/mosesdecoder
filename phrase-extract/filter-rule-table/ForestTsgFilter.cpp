@@ -9,6 +9,13 @@ namespace Syntax
 namespace FilterRuleTable
 {
 
+// kMatchLimit is used to limit the effort spent trying to match an individual
+// rule.  It defines the maximum number of times that MatchFragment() can be
+// called before the search is aborted and the rule is (possibly wrongly)
+// accepted.
+// FIXME Use a better matching algorithm.
+const std::size_t ForestTsgFilter::kMatchLimit = 1000;
+
 ForestTsgFilter::ForestTsgFilter(
     const std::vector<boost::shared_ptr<StringForest> > &sentences)
 {
@@ -79,6 +86,9 @@ bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
 {
   typedef std::vector<const IdTree *> TreeVec;
 
+  // Reset the match counter.
+  m_matchCount = 0;
+
   // Determine which of the fragment's leaves occurs in the smallest number of
   // sentences in the test set.  If the fragment contains a rare word
   // (which is pretty likely assuming a Zipfian distribution) then we only
@@ -93,14 +103,6 @@ bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
       lowestCount = count;
       rarestLeaf = leaf;
     }
-  }
-
-  // TODO Make the threshold configurable
-  // If all of the leaves are common then searching the test forests for a match
-  // is potentially very expensive.  If the rarest leaf occurs in 500 or more
-  // sentences then return true without checking.
-  if (lowestCount >= 500) {
-    return true;
   }
 
   // Try to match the rule fragment against the sentences where the rarest
@@ -159,6 +161,9 @@ bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
 bool ForestTsgFilter::MatchFragment(const IdTree &fragment,
                                     const IdForest::Vertex &v)
 {
+  if (++m_matchCount >= kMatchLimit) {
+    return true;
+  }
   if (fragment.value() != v.value.id) {
     return false;
   }
