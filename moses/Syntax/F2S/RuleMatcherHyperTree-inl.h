@@ -26,33 +26,37 @@ void RuleMatcherHyperTree<Callback>::EnumerateHyperedges(
 
   m_hyperedge.head = const_cast<PVertex*>(&v.pvertex);
 
-  FNS fns(1, &v);
-  FP fp(fns, child);
-  m_queue.push(fp);
+  // Initialize the queue.
+  MatchItem item;
+  item.annotatedFNS.fns = FNS(1, &v);
+  item.trieNode = child;
+  m_queue.push(item);
+
   while (!m_queue.empty()) {
-    FP fp = m_queue.front();
+    MatchItem item = m_queue.front();
     m_queue.pop();
-    if (fp.second->HasRules()) {
+    if (item.trieNode->HasRules()) {
+      const FNS &fns = item.annotatedFNS.fns;
       m_hyperedge.tail.clear();
-      for (FNS::const_iterator p = fp.first.begin(); p != fp.first.end(); ++p) {
+      for (FNS::const_iterator p = fns.begin(); p != fns.end(); ++p) {
         const Forest::Vertex *v = *p;
         m_hyperedge.tail.push_back(const_cast<PVertex *>(&(v->pvertex)));
       }
-      m_hyperedge.translations = &(fp.second->GetTargetPhraseCollection());
+      m_hyperedge.translations = &(item.trieNode->GetTargetPhraseCollection());
       callback(m_hyperedge);
     }
-    PropagateNextLexel(fp);
+    PropagateNextLexel(item);
   }
 }
 
 template<typename Callback>
-void RuleMatcherHyperTree<Callback>::PropagateNextLexel(const FP &fp)
+void RuleMatcherHyperTree<Callback>::PropagateNextLexel(const MatchItem &item)
 {
-  std::vector<FNS> tfns;
-  std::vector<FNS> rfns;
-  std::vector<FNS> rfns2;
+  std::vector<AnnotatedFNS> tfns;
+  std::vector<AnnotatedFNS> rfns;
+  std::vector<AnnotatedFNS> rfns2;
 
-  const HyperTree::Node &trieNode = *(fp.second);
+  const HyperTree::Node &trieNode = *(item.trieNode);
   const HyperTree::Node::Map &map = trieNode.GetMap();
 
   for (HyperTree::Node::Map::const_iterator p = map.begin();
@@ -64,19 +68,23 @@ void RuleMatcherHyperTree<Callback>::PropagateNextLexel(const FP &fp)
 
     std::size_t pos = 0;
     for (int i = 0; i < numSubSeqs; ++i) {
+      const FNS &fns = item.annotatedFNS.fns;
       tfns.clear();
       if (edgeLabel[pos] == HyperPath::kEpsilon) {
-        tfns.push_back(FNS(1, fp.first[i]));
+        AnnotatedFNS x;
+        x.fns = FNS(1, fns[i]);
+        tfns.push_back(x);
         pos += 2;
       } else {
         const int subSeqLength = SubSeqLength(edgeLabel, pos);
-        const std::vector<Forest::Hyperedge*> &incoming = fp.first[i]->incoming;
+        const std::vector<Forest::Hyperedge*> &incoming = fns[i]->incoming;
         for (std::vector<Forest::Hyperedge *>::const_iterator q =
              incoming.begin(); q != incoming.end(); ++q) {
           const Forest::Hyperedge &edge = **q;
           if (MatchChildren(edge.tail, edgeLabel, pos, subSeqLength)) {
             tfns.resize(tfns.size()+1);
-            tfns.back().assign(edge.tail.begin(), edge.tail.end());
+            tfns.back().fns.assign(edge.tail.begin(), edge.tail.end());
+            tfns.back().fragment.push_back(&edge);
           }
         }
         pos += subSeqLength + 1;
@@ -92,29 +100,45 @@ void RuleMatcherHyperTree<Callback>::PropagateNextLexel(const FP &fp)
       }
     }
 
-    for (std::vector<FNS>::const_iterator q = rfns.begin();
+    for (typename std::vector<AnnotatedFNS>::const_iterator q = rfns.begin();
          q != rfns.end(); ++q) {
-      m_queue.push(FP(*q, &child));
+      MatchItem newItem;
+      newItem.annotatedFNS.fns = q->fns;
+      newItem.annotatedFNS.fragment = item.annotatedFNS.fragment;
+      newItem.annotatedFNS.fragment.insert(newItem.annotatedFNS.fragment.end(),
+                                           q->fragment.begin(),
+                                           q->fragment.end());
+      newItem.trieNode = &child;
+      m_queue.push(newItem);
     }
   }
 }
 
 template<typename Callback>
-void RuleMatcherHyperTree<Callback>::CartesianProduct(const std::vector<FNS> &x,
-                                                      const std::vector<FNS> &y,
-                                                      std::vector<FNS> &z)
+void RuleMatcherHyperTree<Callback>::CartesianProduct(
+    const std::vector<AnnotatedFNS> &x,
+    const std::vector<AnnotatedFNS> &y,
+    std::vector<AnnotatedFNS> &z)
 {
   z.clear();
   z.reserve(x.size() * y.size());
-  for (std::vector<FNS>::const_iterator p = x.begin(); p != x.end(); ++p) {
-    const FNS &a = *p;
-    for (std::vector<FNS>::const_iterator q = y.begin(); q != y.end(); ++q) {
-      const FNS &b = *q;
+  for (typename std::vector<AnnotatedFNS>::const_iterator p = x.begin();
+       p != x.end(); ++p) {
+    const AnnotatedFNS &a = *p;
+    for (typename std::vector<AnnotatedFNS>::const_iterator q = y.begin();
+         q != y.end(); ++q) {
+      const AnnotatedFNS &b = *q;
+      // Create a new AnnotatedFNS.
       z.resize(z.size()+1);
-      FNS &c = z.back();
-      c.reserve(a.size() + b.size());
-      c.assign(a.begin(), a.end());
-      c.insert(c.end(), b.begin(), b.end());
+      AnnotatedFNS &c = z.back();
+      // Combine frontier node sequences from a and b.
+      c.fns.reserve(a.fns.size() + b.fns.size());
+      c.fns.assign(a.fns.begin(), a.fns.end());
+      c.fns.insert(c.fns.end(), b.fns.begin(), b.fns.end());
+      // Combine tree fragments from a and b.
+      c.fragment.reserve(a.fragment.size() + b.fragment.size());
+      c.fragment.assign(a.fragment.begin(), a.fragment.end());
+      c.fragment.insert(c.fragment.end(), b.fragment.begin(), b.fragment.end());
     }
   }
 }

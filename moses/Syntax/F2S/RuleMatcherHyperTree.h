@@ -31,26 +31,43 @@ class RuleMatcherHyperTree : public RuleMatcher<Callback>
   void EnumerateHyperedges(const Forest::Vertex &, Callback &);
 
  private:
+  // Frontier node sequence.
   typedef std::vector<const Forest::Vertex *> FNS;
-  typedef std::pair<FNS, const HyperTree::Node *> FP;
 
-  void CartesianProduct(const std::vector<FNS> &, const std::vector<FNS> &,
-                        std::vector<FNS> &);
+  // An AnnotatedFNS is a FNS annotated with the set of forest hyperedges that
+  // constitute the tree fragment from which it was derived.
+  struct AnnotatedFNS {
+    FNS fns;
+    std::vector<const Forest::Hyperedge *> fragment;
+  };
+
+  // A MatchItem is like the FP structure in Zhang et al. (2009), but it also
+  // records the set of forest hyperedges that constitute the matched tree
+  // fragment.
+  struct MatchItem {
+    AnnotatedFNS annotatedFNS;
+    const HyperTree::Node *trieNode;
+  };
+
+  // Implements the Cartsian product operation from line 16 of Algorithm 4
+  // (Zhang et al., 2009), which in this implementation also involves
+  // combining the fragment information associated with the FNS objects.
+  void CartesianProduct(const std::vector<AnnotatedFNS> &,
+                        const std::vector<AnnotatedFNS> &,
+                        std::vector<AnnotatedFNS> &);
 
   int CountCommas(const HyperPath::NodeSeq &);
-
-  void Match(const Forest::Vertex &, const HyperTree::Node &, int, Callback &);
 
   bool MatchChildren(const std::vector<Forest::Vertex *> &,
                      const HyperPath::NodeSeq &, std::size_t, std::size_t);
 
-  void PropagateNextLexel(const FP &);
+  void PropagateNextLexel(const MatchItem &);
 
   int SubSeqLength(const HyperPath::NodeSeq &, int);
 
   const HyperTree &m_ruleTrie;
   PHyperedge m_hyperedge;
-  std::queue<FP> m_queue;  // Called "SFP" in Zhang et al. (2009)
+  std::queue<MatchItem> m_queue;  // Called "SFP" in Zhang et al. (2009)
 };
 
 }  // namespace F2S
