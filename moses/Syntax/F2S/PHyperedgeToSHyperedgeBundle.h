@@ -17,7 +17,7 @@ namespace F2S
 inline void PHyperedgeToSHyperedgeBundle(const PHyperedge &hyperedge,
                                          const PVertexToStackMap &stackMap,
                                          SHyperedgeBundle &bundle) {
-  bundle.translations = hyperedge.translations;
+  bundle.translations = hyperedge.label.translations;
   bundle.stacks.clear();
   for (std::vector<PVertex*>::const_iterator p = hyperedge.tail.begin();
        p != hyperedge.tail.end(); ++p) {

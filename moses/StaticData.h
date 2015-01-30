@@ -112,6 +112,7 @@ protected:
   bool m_sourceStartPosMattersForRecombination;
   bool m_recoverPath;
   bool m_outputHypoScore;
+  bool m_requireSortingAfterSourceContext;
 
   SearchAlgorithm m_searchAlgorithm;
   InputTypeEnum m_inputType;
@@ -799,6 +800,10 @@ public:
 
   bool PrintNBestTrees() const {
     return m_printNBestTrees;
+  }
+
+  bool RequireSortingAfterSourceContext() const {
+    return m_requireSortingAfterSourceContext;
   }
 
 };
