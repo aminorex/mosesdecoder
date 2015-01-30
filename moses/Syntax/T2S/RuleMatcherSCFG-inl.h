@@ -64,7 +64,7 @@ void RuleMatcherSCFG<Callback>::Match(const InputTree::Node &inNode,
       const TargetPhraseCollection *tpc =
           newTrieNode.GetTargetPhraseCollection(lhs);
       if (tpc) {
-        m_hyperedge.translations = tpc;
+        m_hyperedge.label.translations = tpc;
         callback(m_hyperedge);
       }
     } else {

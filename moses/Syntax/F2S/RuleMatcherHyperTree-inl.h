@@ -42,7 +42,8 @@ void RuleMatcherHyperTree<Callback>::EnumerateHyperedges(
         const Forest::Vertex *v = *p;
         m_hyperedge.tail.push_back(const_cast<PVertex *>(&(v->pvertex)));
       }
-      m_hyperedge.translations = &(item.trieNode->GetTargetPhraseCollection());
+      m_hyperedge.label.translations =
+          &(item.trieNode->GetTargetPhraseCollection());
       callback(m_hyperedge);
     }
     PropagateNextLexel(item);

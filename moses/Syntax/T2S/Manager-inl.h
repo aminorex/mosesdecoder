@@ -259,7 +259,7 @@ void Manager<RuleMatcher>::RecombineAndSort(
     // Compare the score of h against the score of the best incoming hyperedge
     // for the stored vertex.
     SVertex *storedVertex = result.first->second;
-    if (h->score > storedVertex->best->score) {
+    if (h->label.score > storedVertex->best->label.score) {
       // h's score is better.
       storedVertex->recombined.push_back(storedVertex->best);
       storedVertex->best = h;

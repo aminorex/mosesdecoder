@@ -46,6 +46,7 @@
 #include "moses/FF/HyperParameterAsWeight.h"
 #include "moses/FF/SetSourcePhrase.h"
 #include "moses/FF/PhraseOrientationFeature.h"
+#include "moses/FF/UnalignedWordCountFeature.h"
 #include "CountNonTerms.h"
 #include "ReferenceComparison.h"
 #include "RuleScope.h"
@@ -72,6 +73,7 @@
 #include "moses/FF/VW/VWFeatureTargetIndicator.h"
 #include "moses/FF/VW/VWFeatureSourceExternalFeatures.h"
 #include "moses/FF/VW/VWFeatureTargetPhraseInternal.h"
+#include "moses/FF/VW/VWFeatureTargetPhraseScores.h"
 #endif
 
 #ifdef HAVE_CMPH
@@ -235,6 +237,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(SpanLength);
   MOSES_FNAME(SyntaxRHS);
   MOSES_FNAME(PhraseOrientationFeature);
+  MOSES_FNAME(UnalignedWordCountFeature);
 
   MOSES_FNAME(SkeletonStatelessFF);
   MOSES_FNAME(SkeletonStatefulFF);
@@ -252,6 +255,7 @@ FeatureRegistry::FeatureRegistry()
   MOSES_FNAME(VWFeatureTargetPhraseInternal);
   MOSES_FNAME(VWFeatureTargetIndicator);
   MOSES_FNAME(VWFeatureSourceExternalFeatures);
+  MOSES_FNAME(VWFeatureTargetPhraseScores);
 #endif
 
 #ifdef HAVE_CMPH

@@ -57,7 +57,7 @@ void DerivationWriter::WriteLine(const SHyperedge &shyperedge,
   out << " [X] ->";
 
   // Target RHS symbols.
-  const TargetPhrase &phrase = *(shyperedge.translation);
+  const TargetPhrase &phrase = *(shyperedge.label.translation);
   for (std::size_t i = 0; i < phrase.GetSize(); ++i) {
     const Word &symbol = phrase.GetWord(i);
     out << " ";
