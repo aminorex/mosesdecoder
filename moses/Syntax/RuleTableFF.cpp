@@ -31,7 +31,8 @@ void RuleTableFF::Load()
   SetFeaturesToApply();
 
   const StaticData &staticData = StaticData::Instance();
-  if (staticData.UseF2SDecoder()) {
+  if (staticData.GetSearchAlgorithm() == SyntaxF2S ||
+      staticData.GetSearchAlgorithm() == SyntaxT2S) {
     F2S::HyperTree *trie = new F2S::HyperTree(this);
     F2S::HyperTreeLoader loader;
     loader.Load(m_input, m_output, m_filePath, *this, *trie);
@@ -51,14 +52,14 @@ void RuleTableFF::Load()
     } else {
       UTIL_THROW2("ERROR: unhandled S2T parsing algorithm");
     }
-  } else if (staticData.UseT2SDecoder()) {
+  } else if (staticData.GetSearchAlgorithm() == SyntaxT2S_SCFG) {
     T2S::RuleTrie *trie = new T2S::RuleTrie(this);
     T2S::RuleTrieLoader loader;
     loader.Load(m_input, m_output, m_filePath, *this, *trie);
     m_table = trie;
   } else {
     UTIL_THROW2(
-      "ERROR: RuleTableFF currently only supports S2T, T2S, and F2S decoders");
+      "ERROR: RuleTableFF currently only supports the S2T, T2S, T2S_SCFG, and F2S search algorithms");
   }
 }
 

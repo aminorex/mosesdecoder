@@ -208,9 +208,7 @@ Parameter::Parameter()
   AddParam("placeholder-factor", "Which source factor to use to store the original text for placeholders. The factor must not be used by a translation or gen model");
   AddParam("no-cache", "Disable all phrase-table caching. Default = false (ie. enable caching)");
   AddParam("default-non-term-for-empty-range-only", "Don't add [X] to all ranges, just ranges where there isn't a source non-term. Default = false (ie. add [X] everywhere)");
-  AddParam("f2s", "Use specialized forest-to-string decoder.");
   AddParam("s2t-parsing-algorithm", "Which S2T parsing algorithm to use. 0=recursive CYK+, 1=scope-3 (default = 0)");
-  AddParam("t2s", "Use specialized tree-to-string decoder.");
 
   AddParam("spe-src", "Simulated post-editing. Source filename");
   AddParam("spe-trg", "Simulated post-editing. Target filename");

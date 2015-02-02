@@ -64,8 +64,9 @@ void TranslationTask::Run()
   if (!staticData.IsChart()) {
     // phrase-based
     manager = new Manager(*m_source);
-  } else if (staticData.UseF2SDecoder()) {
-    // forest-to-string decoding (ask Phil Williams)
+  } else if (staticData.GetSearchAlgorithm() == SyntaxF2S ||
+             staticData.GetSearchAlgorithm() == SyntaxT2S) {
+    // STSG-based tree-to-string / forest-to-string decoding (ask Phil Williams)
     typedef Syntax::F2S::RuleMatcherCallback Callback;
     typedef Syntax::F2S::RuleMatcherHyperTree<Callback> RuleMatcher;
     manager = new Syntax::F2S::Manager<RuleMatcher>(*m_source);
@@ -83,13 +84,11 @@ void TranslationTask::Run()
     } else {
       UTIL_THROW2("ERROR: unhandled S2T parsing algorithm");
     }
-  } else if (staticData.UseT2SDecoder()) {
+  } else if (staticData.GetSearchAlgorithm() == SyntaxT2S_SCFG) {
+    // SCFG-based tree-to-string decoding (ask Phil Williams)
     typedef Syntax::F2S::RuleMatcherCallback Callback;
     typedef Syntax::T2S::RuleMatcherSCFG<Callback> RuleMatcher;
     const TreeInput *tree = NULL;
-    if (!(tree = dynamic_cast<const TreeInput *>(m_source))) {
-      // TODO
-    }
     manager = new Syntax::T2S::Manager<RuleMatcher>(*tree);
   } else if (staticData.GetSearchAlgorithm() == ChartIncremental) {
     // Ken's incremental decoding
