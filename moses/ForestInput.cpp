@@ -194,7 +194,10 @@ void ForestInput::ParseHyperedgeLine(
     }
     e->tail.push_back(AddOrDeleteVertex(v));
   }
-  // Weight is ignored
+  ++p;
+  std::string tmp;
+  p->CopyToString(&tmp);
+  e->weight = std::atof(tmp.c_str());
   e->head->incoming.push_back(e);
 }
 

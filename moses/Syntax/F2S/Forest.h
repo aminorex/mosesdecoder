@@ -19,6 +19,7 @@ class Forest
   struct Hyperedge {
     Vertex *head;
     std::vector<Vertex *> tail;
+    float weight;
   };
 
   struct Vertex {
