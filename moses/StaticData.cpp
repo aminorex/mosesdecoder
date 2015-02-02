@@ -65,8 +65,6 @@ StaticData::StaticData()
   ,m_lmEnableOOVFeature(false)
   ,m_isAlwaysCreateDirectTranslationOption(false)
   ,m_currentWeightSetting("default")
-  ,m_useF2SDecoder(false)
-  ,m_useT2SDecoder(false)
   ,m_requireSortingAfterSourceContext(false)
   ,m_treeStructure(NULL)
 {
@@ -402,14 +400,8 @@ bool StaticData::LoadData(Parameter *parameter)
   m_parameter->SetParameter(m_defaultNonTermOnlyForEmptyRange, "default-non-term-for-empty-range-only", false );
   m_parameter->SetParameter(m_printNBestTrees, "n-best-trees", false );
 
-  // F2S decoder
-  m_parameter->SetParameter(m_useF2SDecoder, "f2s", false);
-
   // S2T decoder
   m_parameter->SetParameter(m_s2tParsingAlgorithm, "s2t-parsing-algorithm", RecursiveCYKPlus);
-
-  // T2S decoder
-  m_parameter->SetParameter(m_useT2SDecoder, "t2s", false);
 
   // Compact phrase table and reordering model
   m_parameter->SetParameter(m_minphrMemory, "minphr-memory", false );
@@ -1120,7 +1112,8 @@ std::map<std::string, std::string> StaticData::OverrideFeatureNames()
 
   // FIXME Does this make sense for F2S?  Perhaps it should be changed once
   // FIXME the pipeline uses RuleTable consistently.
-  if (m_searchAlgorithm == SyntaxS2T || m_useT2SDecoder || m_useF2SDecoder) {
+  if (m_searchAlgorithm == SyntaxS2T || m_searchAlgorithm == SyntaxT2S ||
+      m_searchAlgorithm == SyntaxT2S_SCFG || m_searchAlgorithm == SyntaxF2S) {
     // Automatically override PhraseDictionary{Memory,Scope3}.  This will
     // have to change if the FF parameters diverge too much in the future,
     // but for now it makes switching between the old and new decoders much
