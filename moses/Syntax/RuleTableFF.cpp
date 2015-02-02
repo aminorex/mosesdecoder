@@ -36,7 +36,7 @@ void RuleTableFF::Load()
     F2S::HyperTreeLoader loader;
     loader.Load(m_input, m_output, m_filePath, *this, *trie);
     m_table = trie;
-  } else if (staticData.UseS2TDecoder()) {
+  } else if (staticData.GetSearchAlgorithm() == SyntaxS2T) {
     S2TParsingAlgorithm algorithm = staticData.GetS2TParsingAlgorithm();
     if (algorithm == RecursiveCYKPlus) {
       S2T::RuleTrieCYKPlus *trie = new S2T::RuleTrieCYKPlus(this);
