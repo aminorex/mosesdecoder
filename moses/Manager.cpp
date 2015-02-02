@@ -1850,7 +1850,7 @@ void Manager::OutputAlignment(OutputCollector *collector) const
 void Manager::OutputAlignment(OutputCollector* collector, size_t lineNo , const vector<const Hypothesis *> &edges) const
 {
   ostringstream out;
-  OutputAlignment(dynamic_cast<ostream&>(out), edges);
+  OutputAlignment(out, edges);
 
   collector->Write(lineNo,out.str());
 }
