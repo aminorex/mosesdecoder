@@ -69,7 +69,7 @@ void TranslationTask::Run()
     typedef Syntax::F2S::RuleMatcherCallback Callback;
     typedef Syntax::F2S::RuleMatcherHyperTree<Callback> RuleMatcher;
     manager = new Syntax::F2S::Manager<RuleMatcher>(*m_source);
-  } else if (staticData.UseS2TDecoder()) {
+  } else if (staticData.GetSearchAlgorithm() == SyntaxS2T) {
     // new-style string-to-tree decoding (ask Phil Williams)
     S2TParsingAlgorithm algorithm = staticData.GetS2TParsingAlgorithm();
     if (algorithm == RecursiveCYKPlus) {
